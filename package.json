@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/candidoregis/bamazon#readme",
   "dependencies": {
+    "dotenv": "^8.0.0",
     "table": "^5.4.5"
   }
 }

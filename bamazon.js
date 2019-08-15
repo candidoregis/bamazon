@@ -1,3 +1,4 @@
+require("dotenv").config();
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 const { table } = require("table");
@@ -6,13 +7,13 @@ var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
     user: "root",
-    password: "b469modid",
+    password: process.env.pwdBD,
     database: "bamazon_DB"
 });
 
 connection.connect(function (err) {
     if (err) throw err;
-    logo();
+    // logo();
     runBamazon();
 });
 
@@ -25,8 +26,7 @@ function logo() {
         "▀▀███▀▀▀██▄xx▀███████████x███xxx███xxx███x▀███████████xxx▄███▀xxx▀x███xxxx███x███xxx███x\n" +
         "xx███xxxx██▄xxx███xxxx███x███xxx███xxx███xxx███xxxx███x▄███▀xxxxxxx███xxxx███x███xxx███x\n" +
         "xx███xxxx███xxx███xxxx███x███xxx███xxx███xxx███xxxx███x███▄xxxxx▄█x███xxxx███x███xxx███x\n" +
-        "▄█████████▀xxxx███xxxx█▀xxx▀█xxx███xxx█▀xxxx███xxxx█▀xxx▀████████▀xx▀██████▀xxx▀█xxx█▀xx\n" +
-        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+        "▄█████████▀xxxx███xxxx█▀xxx▀█xxx███xxx█▀xxxx███xxxx█▀xxx▀████████▀xx▀██████▀xxx▀█xxx█▀xx\n");
 }
 
 function displayProductsList() {
@@ -44,7 +44,6 @@ function displayProductsList() {
 }
 
 function buyItem() {
-
     inquirer
         .prompt([
             {
@@ -75,24 +74,51 @@ function buyItem() {
             connection.query(query, [answer.itemId], function (err, res) {
                 if (err) throw err;
                 // console.log(res);
-                for (var i = 0; i < res.length; i++) {
-                  console.log(
-                    'Item ID: ' +
-                      answer.itemId +
-                      ' || Product: ' +
-                      res[i].product_name +
-                      ' || Unit Price: ' +
-                      res[i].price +
-                      ' || Units Available: ' +
-                      res[i].stock_quantity
-                  );
+                if (isAvailable(answer.itemQuantity, res[0].stock_quantity)) {
+                    if (!processBuyProd(answer.itemQuantity,res)) {
+                        // console.log("Transaction is cancelled");
+                    }
+                } else {
+                    //wanna change
                 }
-                /*runSearch();
+                /*run again Search();
               });*/
             });
         });
 }
 
+function processBuyProd(qty,prod) {
+    inquirer
+        .prompt([
+            {
+                name: 'actionConfirmation',
+                type: 'rawlist',
+                message: 'Your order is: '+qty+' '+prod[0].product_name+', is it correct?',
+                choices: [
+                    "Yes",
+                    "No"
+                ]
+            },
+        ])
+        .then(function (answer) {
+            if (answer.actionConfirmation == "Yes"){
+                console.log("The total amount due is: $" + (qty*parseInt(prod[0].price)));
+                console.log("How are you going to pay? Bamazon accepts VISA, Master, AMEX, Debit and Interac");
+                console.log("Thank you, your receipt is here. You can download it or print it.")
+                return true;
+            } else {
+                return false;
+            }
+        });
+}
+
+function isAvailable(askedQty, availableQty) {
+    if (askedQty <= availableQty) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 function runBamazon() {
 
