@@ -3,6 +3,7 @@ var mysql = require("mysql");
 var inquirer = require("inquirer");
 const { table } = require("table");
 
+// DB CONNECTION INFO
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
@@ -11,10 +12,12 @@ var connection = mysql.createConnection({
     database: "bamazon_DB"
 });
 
+// CONNECTING TO DB
 connection.connect(function (err) {
     if (err) throw err;
 });
 
+// DISPLAY A TEXT LOGO
 function logo() {
     console.log(
         "▀█████████▄xxxxx▄████████xxx▄▄▄▄███▄▄▄▄xxxxxx▄████████xx▄███████▄xxx▄██████▄xx███▄▄▄▄xxx\n" +
@@ -27,6 +30,7 @@ function logo() {
         "▄█████████▀xxxx███xxxx█▀xxx▀█xxx███xxx█▀xxxx███xxxx█▀xxx▀████████▀xx▀██████▀xxx▀█xxx█▀xx\n");
 }
 
+// FUNCTION TO DISPLAY THE ITEMS IN DB AND TO RUN THE CODE
 function displayProductsList() {
     var query = connection.query("SELECT * FROM products", function (err, res) {
         if (err) throw err;
@@ -41,6 +45,7 @@ function displayProductsList() {
     });
 }
 
+// FUNCTION TO REQUEST USER'S INPUT TO PURCHASE AN ITEM
 function runBamazon() {
     inquirer.prompt([
         {
@@ -75,6 +80,7 @@ function runBamazon() {
             connection.query(query, [buyItemAnswer.itemId], function (err, res) {
                 if (err) throw err;
                 var requestQty = buyItemAnswer.itemQuantity;
+                // verify if the store has the qty requested by user, if Yes, update DB, else, inform to user
                 if (requestQty <= res[0].stock_quantity) {
                     console.log("The total amount due is: $" + (requestQty * parseInt(res[0].price)));
                     console.log("Thank you, your receipt is here. You can download it or print it.");
