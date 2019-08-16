@@ -13,8 +13,6 @@ var connection = mysql.createConnection({
 
 connection.connect(function (err) {
     if (err) throw err;
-    // logo();
-    runBamazon();
 });
 
 function logo() {
@@ -38,118 +36,59 @@ function displayProductsList() {
             output.push(data);
         }
         console.log("\n" + table(output) + "\n");
-        // return 0;
+        console.log("Welcome to Bamazon! These are the Week's Deals");
         runBamazon();
     });
 }
 
-function buyItem() {
-    inquirer
-        .prompt([
-            {
-                name: 'itemId',
-                type: 'input',
-                message: 'Please, enter the product ID you want to buy: ',
-                validate: function (value) {
-                    if (isNaN(value) === false) {
-                        return true;
-                    }
-                    return false;
-                },
-            },
-            {
-                name: 'itemQuantity',
-                type: 'input',
-                message: 'How many units do you want to buy? ',
-                validate: function (value) {
-                    if (isNaN(value) === false) {
-                        return true;
-                    }
-                    return false;
-                },
-            },
-        ])
-        .then(function (answer) {
-            var query = 'SELECT product_name, price, stock_quantity FROM products where item_id = ?';
-            connection.query(query, [answer.itemId], function (err, res) {
-                if (err) throw err;
-                // console.log(res);
-                if (isAvailable(answer.itemQuantity, res[0].stock_quantity)) {
-                    if (!processBuyProd(answer.itemQuantity,res)) {
-                        // console.log("Transaction is cancelled");
-                    }
-                } else {
-                    //wanna change
+function runBamazon() {
+    inquirer.prompt([
+        {
+            name: 'itemId',
+            type: 'input',
+            message: 'Please, enter the product ID you want to buy, or enter 0 (zero) to leave Bamazon.',
+            validate: function (value) {
+                if ((isNaN(value) === false) && (value != 0)) {
+                    return true;
+                } else if (value==0) {
+                    console.log("\nThank you for your visit and welcome back anytime.");
+                    connection.end();
+                    process.exit();
                 }
-                /*run again Search();
-              });*/
+                return false;
+            },
+        },
+        {
+            name: 'itemQuantity',
+            type: 'input',
+            message: 'How many units do you want to buy? ',
+            validate: function (value) {
+                if ((isNaN(value) === false) && (value != 0)) {
+                    return true;
+                }
+                return false;
+            },
+        },
+    ])
+        .then(function (buyItemAnswer) {
+            var query = 'SELECT product_name, price, stock_quantity FROM products where item_id = ?';
+            connection.query(query, [buyItemAnswer.itemId], function (err, res) {
+                if (err) throw err;
+                var requestQty = buyItemAnswer.itemQuantity;
+                if (requestQty <= res[0].stock_quantity) {
+                    console.log("The total amount due is: $" + (requestQty * parseInt(res[0].price)));
+                    console.log("Thank you, your receipt is here. You can download it or print it.");
+                    var updateQuery = 'UPDATE products SET stock_quantity = stock_quantity - ? WHERE item_id = ?';
+                    connection.query(updateQuery, [requestQty, buyItemAnswer.itemId], function (err, res) {
+                        if (err) throw err;
+                    });
+                } else {
+                    console.log("I'm sorry, we don't have this quantity.");
+                }
+                displayProductsList();
             });
         });
 }
 
-function processBuyProd(qty,prod) {
-    inquirer
-        .prompt([
-            {
-                name: 'actionConfirmation',
-                type: 'rawlist',
-                message: 'Your order is: '+qty+' '+prod[0].product_name+', is it correct?',
-                choices: [
-                    "Yes",
-                    "No"
-                ]
-            },
-        ])
-        .then(function (answer) {
-            if (answer.actionConfirmation == "Yes"){
-                console.log("The total amount due is: $" + (qty*parseInt(prod[0].price)));
-                console.log("How are you going to pay? Bamazon accepts VISA, Master, AMEX, Debit and Interac");
-                console.log("Thank you, your receipt is here. You can download it or print it.")
-                return true;
-            } else {
-                return false;
-            }
-        });
-}
-
-function isAvailable(askedQty, availableQty) {
-    if (askedQty <= availableQty) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function runBamazon() {
-
-    inquirer
-        .prompt({
-            name: "buyingId",
-            type: "rawlist",
-            message: "Welcome to Bamazon! What can I do for you today?",
-            choices: [
-                "List products",
-                "Buy a product",
-                "Exit"
-            ]
-        })
-        .then(function (answer) {
-            switch (answer.buyingId) {
-                case "List products":
-                    // console.log("Displaying list of items");
-                    displayProductsList();
-                    break;
-                case "Buy a product":
-                    buyItem();
-                    break;
-                case "Exit":
-                    console.log("Thank you for your visit and welcome back anytime.");
-                    connection.end();
-                    break;
-            }
-        });
-}
-
-
-
-
+logo();
+displayProductsList();
